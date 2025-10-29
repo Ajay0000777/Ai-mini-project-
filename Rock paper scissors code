@@ -1,0 +1,206 @@
+import pygame
+import random
+import sys
+
+# Initialize Pygame
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 800, 600
+FPS = 60
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
+DARK_GRAY = (100, 100, 100)
+GREEN = (50, 200, 50)
+RED = (200, 50, 50)
+BLUE = (100, 150, 255)
+
+# Game choices
+CHOICES = ['ROCK', 'PAPER', 'SCISSORS']
+
+class Button:
+    def __init__(self, x, y, width, height, text, choice):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.choice = choice
+        self.hover = False
+        
+    def draw(self, screen, font):
+        color = BLUE if self.hover else GRAY
+        pygame.draw.rect(screen, color, self.rect, border_radius=10)
+        pygame.draw.rect(screen, BLACK, self.rect, 3, border_radius=10)
+        
+        text_surf = font.render(self.text, True, BLACK)
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
+        
+    def check_hover(self, pos):
+        self.hover = self.rect.collidepoint(pos)
+        
+    def is_clicked(self, pos):
+        return self.rect.collidepoint(pos)
+
+class RockPaperScissorsGame:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption("Rock Paper Scissors")
+        self.clock = pygame.time.Clock()
+        self.font_large = pygame.font.Font(None, 72)
+        self.font_medium = pygame.font.Font(None, 48)
+        self.font_small = pygame.font.Font(None, 36)
+        
+        # Game state
+        self.player_choice = None
+        self.computer_choice = None
+        self.result = None
+        self.player_score = 0
+        self.computer_score = 0
+        self.showing_result = False
+        self.result_timer = 0
+        
+        # Create buttons
+        button_width = 200
+        button_height = 80
+        spacing = 50
+        start_x = (WIDTH - (button_width * 3 + spacing * 2)) // 2
+        y_pos = HEIGHT - 150
+        
+        self.buttons = [
+            Button(start_x, y_pos, button_width, button_height, "ROCK", "ROCK"),
+            Button(start_x + button_width + spacing, y_pos, button_width, button_height, "PAPER", "PAPER"),
+            Button(start_x + (button_width + spacing) * 2, y_pos, button_width, button_height, "SCISSORS", "SCISSORS")
+        ]
+        
+    def determine_winner(self, player, computer):
+        if player == computer:
+            return "TIE"
+        elif (player == "ROCK" and computer == "SCISSORS") or \
+             (player == "PAPER" and computer == "ROCK") or \
+             (player == "SCISSORS" and computer == "PAPER"):
+            return "WIN"
+        else:
+            return "LOSE"
+    
+    def play_round(self, player_choice):
+        self.player_choice = player_choice
+        self.computer_choice = random.choice(CHOICES)
+        self.result = self.determine_winner(self.player_choice, self.computer_choice)
+        
+        if self.result == "WIN":
+            self.player_score += 1
+        elif self.result == "LOSE":
+            self.computer_score += 1
+            
+        self.showing_result = True
+        self.result_timer = pygame.time.get_ticks()
+    
+    def draw_choice(self, choice, x, y, label):
+        # Draw choice emoji/icon
+        if choice == "ROCK":
+            emoji = "✊"
+        elif choice == "PAPER":
+            emoji = "✋"
+        else:  # SCISSORS
+            emoji = "✌"
+            
+        emoji_surf = self.font_large.render(emoji, True, BLACK)
+        emoji_rect = emoji_surf.get_rect(center=(x, y - 40))
+        self.screen.blit(emoji_surf, emoji_rect)
+        
+        # Draw label
+        label_surf = self.font_small.render(label, True, BLACK)
+        label_rect = label_surf.get_rect(center=(x, y + 40))
+        self.screen.blit(label_surf, label_rect)
+        
+        # Draw choice text
+        choice_surf = self.font_medium.render(choice, True, BLACK)
+        choice_rect = choice_surf.get_rect(center=(x, y + 80))
+        self.screen.blit(choice_surf, choice_rect)
+    
+    def draw(self):
+        self.screen.fill(WHITE)
+        
+        # Draw title
+        title = self.font_large.render("Rock Paper Scissors", True, BLACK)
+        title_rect = title.get_rect(center=(WIDTH // 2, 50))
+        self.screen.blit(title, title_rect)
+        
+        # Draw scores
+        score_text = f"You: {self.player_score}  |  Computer: {self.computer_score}"
+        score_surf = self.font_medium.render(score_text, True, BLACK)
+        score_rect = score_surf.get_rect(center=(WIDTH // 2, 120))
+        self.screen.blit(score_surf, score_rect)
+        
+        # Draw result if showing
+        if self.showing_result:
+            # Draw choices
+            self.draw_choice(self.player_choice, WIDTH // 3, HEIGHT // 2, "YOU")
+            self.draw_choice(self.computer_choice, 2 * WIDTH // 3, HEIGHT // 2, "COMPUTER")
+            
+            # Draw VS text
+            vs_surf = self.font_medium.render("VS", True, DARK_GRAY)
+            vs_rect = vs_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+            self.screen.blit(vs_surf, vs_rect)
+            
+            # Draw result
+            if self.result == "WIN":
+                result_text = "YOU WIN!"
+                result_color = GREEN
+            elif self.result == "LOSE":
+                result_text = "YOU LOSE!"
+                result_color = RED
+            else:
+                result_text = "TIE!"
+                result_color = DARK_GRAY
+                
+            result_surf = self.font_large.render(result_text, True, result_color)
+            result_rect = result_surf.get_rect(center=(WIDTH // 2, 200))
+            self.screen.blit(result_surf, result_rect)
+        else:
+            # Draw instruction
+            instruction = "Choose your weapon!"
+            instr_surf = self.font_medium.render(instruction, True, DARK_GRAY)
+            instr_rect = instr_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+            self.screen.blit(instr_surf, instr_rect)
+        
+        # Draw buttons
+        for button in self.buttons:
+            button.draw(self.screen, self.font_medium)
+        
+        pygame.display.flip()
+    
+    def run(self):
+        running = True
+        while running:
+            self.clock.tick(FPS)
+            mouse_pos = pygame.mouse.get_pos()
+            
+            # Check if we should hide the result
+            if self.showing_result and pygame.time.get_ticks() - self.result_timer > 2500:
+                self.showing_result = False
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    
+                if event.type == pygame.MOUSEBUTTONDOWN and not self.showing_result:
+                    for button in self.buttons:
+                        if button.is_clicked(mouse_pos):
+                            self.play_round(button.choice)
+            
+            # Update button hover states
+            if not self.showing_result:
+                for button in self.buttons:
+                    button.check_hover(mouse_pos)
+            
+            self.draw()
+        
+        pygame.quit()
+        sys.exit()
+
+if __name__ == "__main__":
+    game = RockPaperScissorsGame()
+    game.run()
